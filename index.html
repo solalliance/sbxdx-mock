@@ -39248,7 +39248,7 @@ window.SBX_SEED={
  {id:'deliver',name:'納品準備',icon:'gift',color:'#35aa8b',category:'納品',description:'成果物を用意',required:['納品物'],completion:'公開する成果物を準備',active:true},
  {id:'contact',name:'顧客への連絡',icon:'mail',color:'#6c9bab',category:'受付',description:'必要な案内を送る',required:[],completion:'連絡結果を記録',active:true},
  {id:'contract',name:'契約手続き',icon:'file',color:'#7586c1',category:'受付',description:'必要サインを確認',required:[],completion:'署名状態を確認',active:true}],
- companies:[{id:'co1',name:'A商事',initial:'A',color:'#487de0',member:true,contact:'青木 様',email:'a@example.invalid',fiscal:'8月',status:'active'},
+ companies:[{id:'co1',name:'A商事',initial:'A',color:'#487de0',member:true,contact:'田中 様',email:'a@example.invalid',fiscal:'8月',status:'active'},
  {id:'co2',name:'Bフーズ',initial:'B',color:'#e69a57',member:false,contact:'橋本 様',email:'b@example.invalid',fiscal:'8月',status:'active'},
  {id:'co3',name:'C工業',initial:'C',color:'#9c70ce',member:true,contact:'中村 様',email:'c@example.invalid',fiscal:'12月',status:'active'},
  {id:'co4',name:'D物産',initial:'D',color:'#26a18e',member:true,contact:'井上 様',email:'d@example.invalid',fiscal:'8月',status:'active'},
@@ -39285,6 +39285,9 @@ window.SBX_SEED={
 if(/[?&]app=react\b/.test(location.search))return;
 const KEY='sbxdx-workspace-v1';let stored;try{stored=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
 const seed=window.SBX_SEED;const state=stored&&stored.version===seed.version?Object.assign(structuredClone(seed),stored):structuredClone(seed);
+// Update the demo contact in previously saved workspaces as well.
+const demoCompany=state.companies.find(c=>c.id==='co1');
+if(demoCompany&&demoCompany.contact==='青木 様')demoCompany.contact='田中 様';
 function ensureSnapshots(){
  state.cases.forEach(c=>{
   if(!c.flowSnapshot){
