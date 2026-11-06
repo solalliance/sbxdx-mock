@@ -1688,6 +1688,76 @@ body.workspace-mode{height:auto!important;min-height:100vh;overflow:visible!impo
 /* Keep the sidebar brand short and inside its available width. */
 .ws-brand{font-size:22px;letter-spacing:.02em;max-width:100%;min-width:0;box-sizing:border-box}
 
+/* UI-2026-11-06-visibility: shared visual hierarchy across every workspace route. */
+body.workspace-mode{background:#edf2f7;color:#25364a}
+.ws-app{--ui-line:#cfdae6;--ui-muted:#596d82;--ui-blue:#245cab;--ui-green:#146b53;--ui-amber:#89530c;--ui-red:#ae304b;--ui-purple:#694398}
+.ws-app .ws-sidebar{background:#f8fafc;border-color:#d5dfe9}
+.ws-app .ws-brand{color:#233e5b}
+.ws-app .ws-topbar{background:#fff;border-color:#cfdbe6;box-shadow:0 2px 8px #203d5710}
+.ws-app .ws-nav-label{color:#596d82;letter-spacing:.08em}
+.ws-app .ws-nav{color:#52667c}
+.ws-app .ws-nav:hover{background:#e8eef6;color:#253e5c}
+.ws-app .ws-nav.active{box-shadow:inset 3px 0 var(--accent);background:var(--accent-soft)}
+.ws-app .ws-roles{background:#e5ebf3}.ws-app .ws-role{color:#52647b}
+.ws-app .ws-role.active{color:#233e5c;box-shadow:0 1px 5px #203d5722}
+.ws-app :is(.page-head,.ww-head,.ad-top,.cl-head){background:linear-gradient(110deg,#fff 0%,color-mix(in srgb,var(--accent) 9%,white) 100%);border:1px solid #cfdae6;border-left:4px solid var(--accent);border-radius:13px;padding:20px 22px;box-shadow:0 2px 5px #243c5410}
+.ws-app :is(.panel,.card,.ww-panel,.ad-panel,.cl-card,.ad-staff-card,.ad-connection,.lc-dash-next){border-color:#cfdbe7;box-shadow:0 3px 10px #233c5410}
+.ws-app :is(.panel,.ww-panel,.ad-panel,.cl-card)>h2:first-child{padding-bottom:12px;border-bottom:1px solid #dce5ee;color:#29445f}
+.ws-app :is(.muted,.ww-muted,.ad-muted,.ad-sub,.cl-muted,.cl-sub,.cl-small,.lc-info,.lc-dash-note,.ww-task-meta,.ww-label,.ww-side-row>span:first-child,.ww-card p,.ww-stat small,.lc-dash-foot,.lc-dash-title){color:var(--ui-muted)}
+.ws-app :is(.ws-breadcrumb,.ad-breadcrumb,.cl-breadcrumb,.ws-footer){color:#607388}
+.ws-app :is(.ws-context,.ww-field,.ad-field,.field,.ww-label){color:#405a72}
+.ws-app :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea){border-color:#bccbdc;box-shadow:inset 0 1px 2px #213d5405}
+.ws-app input::placeholder,.ws-app textarea::placeholder{color:#66798e;opacity:1}
+.ws-app :is(.btn,.ww-button,.ad-btn,.cl-btn){border-color:#bbcbdc;color:#36516c}
+.ws-app :is(.btn,.ww-button,.ad-btn,.cl-btn).primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.ws-app :is(.btn,.ww-button,.ad-btn,.cl-btn).soft{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 32%,white);color:color-mix(in srgb,var(--accent) 75%,#14273e)}
+.ws-app :is(.btn,.ww-button,.ad-btn,.cl-btn).danger{color:#a62e46;background:#fff0f3;border-color:#ecc0cb}
+.ws-app :is(.tabs,.ww-tabs,.ad-tabs,.cl-tabs){background:#e1e9f2;padding:5px;border-radius:11px}
+.ws-app :is(.tabs,.ww-tabs,.ad-tabs,.cl-tabs) button{color:#52667d}
+.ws-app :is(.tabs,.ww-tabs,.ad-tabs,.cl-tabs) button.active{background:#fff;color:#263f5b;box-shadow:0 1px 5px #1c3c5822}
+.ws-app :is(table,.ww-table,.ad-table) th{background:#eaf0f7;color:#405973;font-weight:700;border-bottom:1px solid #c6d3e1}
+.ws-app :is(table,.ww-table,.ad-table) td{color:#3e556e;border-bottom-color:#dce5ee}
+.ws-app tbody tr:nth-child(even){background:#f6f9fc}
+.ws-app tbody tr[data-go]:hover{background:#eaf2ff}
+.ws-app :is(.ww-task,.cl-row,.lc-row,.ad-staffrow){border-bottom-color:#dce5ee}
+.ws-app :is(.ww-task,.cl-row,.ad-staffrow):hover{background:#f4f8fc}
+.ws-app :is(.ww-stat,.ad-metric,.stat,.lc-summary article){background:#f2f6fd;border-color:#c8d8ed;border-top:3px solid #6990c5}
+.ws-app .ww-stat:nth-child(2),.ws-app .ad-metric:nth-child(2){background:#f4f0fb;border-color:#d9c9ec;border-top-color:#9370b7}
+.ws-app .ww-stat:nth-child(3),.ws-app .ad-metric:nth-child(3){background:#eef8f3;border-color:#c3dfd0;border-top-color:#4c9276}
+.ws-app .lc-dash-card{background:#f1f6ff;border-color:#c5d6ee;border-top:3px solid #678fc8}
+.ws-app .lc-dash-card[data-kind=won],.ws-app .lc-dash-card[data-kind=integrations]{background:#edf8f2;border-color:#bddfce;border-top-color:#459573}
+.ws-app .lc-dash-card[data-kind=unpaid],.ws-app .lc-dash-card[data-kind=overdue],.ws-app .lc-dash-card[data-kind=failed]{background:#fff4ed;border-color:#edcfbb;border-top-color:#c78a49}
+.ws-app .lc-dash-card:hover{box-shadow:0 4px 12px #243c5420;filter:brightness(.98)}
+.ws-app .lc-dash-card :is(.lc-dash-title,.lc-dash-foot){color:#52677f}
+.ws-app .lc-dash-card small{color:#5c7085}
+.ws-app .sa-panel{background:#fffbf2;border-color:#d7c59e}
+.ws-app .sa-metric{background:#fff;border-color:#d8cdb6}
+.ws-app .sa-warn{background:#fff0df;color:#85510f;border-color:#e6c396}
+.ws-app :is(.ww-req,.ad-notice,.lc-flow,.cl-note){background:#edf4fc;border-color:#c7d9ec;color:#3e5d7d}
+.ws-app :is(.ww-shortcut,.ww-mini-stat,.lc-receipt,.cl-file){background:#f1f6fb;border:1px solid #d6e1ed}
+.ws-app .ww-note{background:#f7f2fc;border-color:#ded1eb;border-left-color:#9264b8}
+.ws-app :is(.ww-lane,.ad-lane){background:color-mix(in srgb,var(--stage-color,#7897b9) 10%,#f5f8fc);border-color:#cad7e5}
+.ws-app .ww-lane-head{color:#334e69}.ws-app .ww-lane-empty{color:#60758b}
+.ws-app .ww-sale{border-color:#c7d5e4;box-shadow:0 2px 6px #263d5912}
+.ws-app .ww-sale p{color:#60738a}
+.ws-app .ww-stage-nav button{border-color:#c3d1e1;color:#405a76}
+.ws-app :is(.ww-chip,.badge,.chip,.ad-tag,.cl-toggle){font-weight:650}
+.ws-app :is(.ww-chip,.badge,.chip).blue{background:#e5efff;color:#245cab}
+.ws-app :is(.ww-chip,.badge,.chip).green{background:#e3f4eb;color:#146b53}
+.ws-app :is(.ww-chip,.badge,.chip).purple{background:#eee5f8;color:#694398}
+.ws-app :is(.ww-chip,.badge,.chip).amber,.ws-app :is(.badge,.chip).orange{background:#fff0d5;color:#89530c}
+.ws-app :is(.ww-chip,.badge,.chip).red{background:#fce5eb;color:#ae304b}
+.ws-app :is(.ww-chip,.badge,.chip).gray{background:#e8edf3;color:#53677e}
+.ws-app .cl-hero{background:#e6f3ed;border:1px solid #bed9cb}
+.ws-app .cl-upload{background:#f0f8f5;border-color:#70a794;color:#286956}
+.ws-app .cl-service{border-color:#c5d5df;background:#fff}
+.ws-app .cl-service:has(input:checked){background:#e5f3ec;border-color:#37977a;box-shadow:0 0 0 1px #37977a}
+.ws-app .cl-service:hover{border-color:#37977a;background:#f0f8f4}
+.ws-app :is(.ws-modal-head,.ws-modal-footer){background:#f0f4f9;border-color:#d2dce7}
+.ws-app :is(.empty,.ww-empty,.ad-empty,.cl-empty){color:#5e7388;background:#f4f7fb;border-radius:10px}
+.ws-app :is(button,a,input,select,textarea):focus-visible{outline:3px solid #2769c4;outline-offset:3px}
+@media(max-width:760px){.ws-app :is(.page-head,.ww-head,.ad-top,.cl-head){padding:16px;border-radius:11px}.ws-app .ws-content{padding-top:18px}}
+
 </style>
 </head>
 <body>
