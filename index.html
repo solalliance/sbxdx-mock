@@ -1790,6 +1790,12 @@ body.workspace-mode{background:#edf2f7;color:#25364a}
 
 .ws-app .ic-review-form{display:grid;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #dce5ee}.ws-app .ic-review-form .ww-field{width:100%}.ws-app .ic-review-form .ww-button{justify-self:start}.ws-app .ic-review-return{padding:13px;margin:14px 0;border:1px solid #edb6b6;border-radius:10px;background:#fff1f1;color:#8d3434;overflow-wrap:anywhere}.ws-app .ic-review-return p{margin:7px 0;white-space:pre-wrap}.ws-app .ic-review-return small{font-size:11px}
 
+.ws-app .ic-due{margin-top:7px}
+.ws-app .ic-due .red{background:#ffe5e8;color:#a3273e}
+.ws-app .ic-due .amber{background:#fff0bc;color:#765300}
+.ws-app .ic-due .green{background:#e1f4e8;color:#226443}
+.ws-app .ic-due-form{display:grid;gap:8px;justify-items:start}
+
 </style>
 </head>
 <body>
@@ -40570,14 +40576,58 @@ H['intake-info']=async f=>{const v=S.form(f),id=v.companyId;if(st.role==='client
 H['intake-retry']=async el=>exclusive(()=>{const id=el.dataset.id;if(st.role==='client'&&st.clientId!==id)return;const rec=st.smallTeam.customers[id],slot=rec?.slots[el.dataset.slot],sub=slotCurrent(slot);if(!sub||!sub.files.some(f=>f.storage==='failed'))return;sub.files.forEach(f=>f.storage='pending');st.storageJobs.push({id:uid('storage'),companyId:id,slotId:slot.id,submissionId:sub.id,status:'pending',revision:1,createdAt:now()});rec.intakeRevision++;S.save();S.render();schedule()});
 // The entire task pool is visible before documents arrive. Colour communicates eligibility, not ownership.
 function stateFor(t){const r=S.intakeReadiness(t);return t.status==='done'?'done':t.assignee?'claimed':r.excluded?'excluded':r.ready?'ready':'waiting'}
-function cards(list,companyLabel=true){return `<div class="ic-task-grid">`+list.map(t=>{const r=S.intakeReadiness(t),state=stateFor(t),s=S.intakeTaskState(t),me=actor()===t.assignee,d=t.definition||S.smallTeam.defs.find(d=>d.id===t.code);return`<article class="ic-task ${state}" data-claim-task="${e(t.id)}" data-light="${state}"><div class="ic-task-main"><div class="sm-inline">${chip(t.code,'gray')}${chip(s.label,s.tone)}</div><h3 title="${e(t.title)}">${e(t.title)}</h3>${companyLabel?`<button class="sm-textlink" data-go="customer-detail" data-id="${e(t.companyId)}">${e(company(t.companyId)?.name)}</button>`:''}<p class="ww-muted">${e(d.system)}</p><p class="sm-condition" title="${e(r.reason)}">${e(t.status==='done'?'完了 '+(t.completedAt||'').slice(0,10):r.reason)}</p></div><div class="ic-claim-owner"><strong>${e(t.assignee?(person(t.assignee)?.name||'担当者未登録'):'未選択')}</strong>${t.assignee?'<small>担当確保</small>':''}</div><div class="ww-actions">${state==='done'?`<button class="ww-button" disabled>完了・選択不可</button>${go('記録','task-detail',t.id)}`:t.assignee?go(me?'自分の作業を開く':'確保済みの記録','task-detail',t.id,'soft'):r.ready?`<button class="ww-button primary" data-action="claim-task" data-id="${e(t.id)}" ${actor()?'':'disabled'}>このタスクを選ぶ</button>${!actor()?'<small class="ww-muted">上部でパートを選択</small>':''}`:'<button class="ww-button" disabled>資料・前工程待ち</button>'+go('詳細','task-detail',t.id)}</div></article>`}).join('')+(!list.length?'<div class="ww-empty">該当するタスクはありません。</div>':'')+'</div>'}
+// Compare calendar dates in Japan, without depending on the device time zone.
+const japanDate=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'});
+function validDue(value){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value||'')||value.startsWith('0000'))return false;
+  const date=new Date(value+'T00:00:00Z');
+  return Number.isFinite(+date)&&date.toISOString().slice(0,10)===value;
+}
+function byDue(list){
+  const key=t=>validDue(t.due)?t.due:'9999-99-99';
+  return [...list].sort((a,b)=>key(a).localeCompare(key(b),'en'));
+}
+function dueLabel(t,today,state){
+  if(!validDue(t.due))return '<div class="ic-due">'+chip('納期未設定','gray')+'</div>';
+  const days=(Date.parse(t.due)-Date.parse(today))/86400000;
+  const deadline='納期 '+t.due.replaceAll('-','/');
+  if(state==='done'||state==='excluded')return '<div class="ic-due">'+chip(deadline,'gray')+'</div>';
+  const tone=days<=1?'red':days<=4?'amber':'green';
+  const remaining=days<0?'超過 '+(-days)+'日':days===0?'今日':'あと'+days+'日';
+  return '<div class="ic-due">'+chip(deadline+' · '+remaining,tone)+'</div>';
+}
+function dueForm(t){
+  if(st.role!=='admin'||t.status==='done')return '';
+  const due=validDue(t.due)?t.due:'';
+  return `<form data-submit="intake-task-due" class="ic-due-form sm-section"><input type="hidden" name="id" value="${e(t.id)}"><input type="hidden" name="previousDue" value="${e(due)}"><label class="ww-label">タスクの納期<input class="ww-field" name="due" type="date" value="${e(due)}"></label><p class="ww-muted">日付を空欄にすると納期未設定になります。</p><div class="wf-errors" data-intake-error role="alert"></div><button type="submit" class="ww-button primary">納期を保存</button></form>`;
+}
+H['intake-task-due']=async f=>{
+  const values=S.form(f);
+  await exclusive(()=>{
+    const t=task(values.id);
+    if(st.role!=='admin'||!t||t.status==='done')return failedForm(f,'未完了のタスクの納期は管理者が変更できます');
+    const current=validDue(t.due)?t.due:'';
+    if(current!==values.previousDue)return failedForm(f,'納期が変更されています。画面を開き直してください');
+    const due=values.due||'';
+    if(due&&!validDue(due))return failedForm(f,'有効な日付を入力してください');
+    if(current!==due){
+      t.due=due;
+      bump(t);
+      history(t,'管理者が納期を変更：'+(current||'未設定')+' → '+(due||'未設定'));
+      S.save();
+    }
+    S.render();
+    S.toast('納期を保存しました');
+  });
+};
+function cards(list,companyLabel=true){const today=japanDate.format(new Date());return `<div class="ic-task-grid">`+byDue(list).map(t=>{const r=S.intakeReadiness(t),state=stateFor(t),s=S.intakeTaskState(t),me=actor()===t.assignee,d=t.definition||S.smallTeam.defs.find(d=>d.id===t.code);return`<article class="ic-task ${state}" data-claim-task="${e(t.id)}" data-light="${state}"><div class="ic-task-main"><div class="sm-inline">${chip(t.code,'gray')}${chip(s.label,s.tone)}</div><h3 title="${e(t.title)}">${e(t.title)}</h3>${companyLabel?`<button class="sm-textlink" data-go="customer-detail" data-id="${e(t.companyId)}">${e(company(t.companyId)?.name)}</button>`:''}${dueLabel(t,today,state)}<p class="ww-muted">${e(d.system)}</p><p class="sm-condition" title="${e(r.reason)}">${e(t.status==='done'?'完了 '+(t.completedAt||'').slice(0,10):r.reason)}</p></div><div class="ic-claim-owner"><strong>${e(t.assignee?(person(t.assignee)?.name||'担当者未登録'):'未選択')}</strong>${t.assignee?'<small>担当確保</small>':''}</div><div class="ww-actions">${state==='done'?`<button class="ww-button" disabled>完了・選択不可</button>${go('記録','task-detail',t.id)}`:t.assignee?go(me?'自分の作業を開く':'確保済みの記録','task-detail',t.id,'soft'):r.ready?`<button class="ww-button primary" data-action="claim-task" data-id="${e(t.id)}" ${actor()?'':'disabled'}>このタスクを選ぶ</button>${st.role==='admin'?go('詳細・納期','task-detail',t.id):!actor()?'<small class="ww-muted">上部でパートを選択</small>':''}`:'<button class="ww-button" disabled>資料・前工程待ち</button>'+go('詳細','task-detail',t.id)}</div></article>`}).join('')+(!list.length?'<div class="ww-empty">該当するタスクはありません。</div>':'')+'</div>'}
 S.intakeTaskRows=cards;
 let filter='all';
-function taskPool(){init();const list=S.smallTeam.tasksFor().filter(t=>filter==='all'||filter==='ready'&&stateFor(t)==='ready'||filter==='mine'&&t.assignee===actor()&&t.status!=='done'||filter==='claimed'&&t.assignee&&t.status!=='done'||filter==='waiting'&&stateFor(t)==='waiting'||filter==='done'&&t.status==='done');return head('タスクを選ぶ','全タスクが先に並びます。グレーは資料待ち、カラーは選択可能。選ぶと自分の名前で確保されます。')+`<div class="ww-tabs">${[['all','すべて'],['ready','着手可'],['mine','自分が確保'],['claimed','確保済み'],['waiting','資料待ち'],['done','完了']].map(([v,s])=>`<button class="ww-tab ${filter===v?'active':''}" data-action="claim-filter" data-value="${v}">${s}</button>`).join('')}</div><section class="ww-panel ic-pool">${cards(list)}</section>`}
+function taskPool(){init();const list=S.smallTeam.tasksFor().filter(t=>filter==='all'||filter==='ready'&&stateFor(t)==='ready'||filter==='mine'&&t.assignee===actor()&&t.status!=='done'||filter==='claimed'&&t.assignee&&t.status!=='done'||filter==='waiting'&&stateFor(t)==='waiting'||filter==='done'&&t.status==='done');return head('タスクを選ぶ','タスクは納期が近い順です。着手可能なタスクを選ぶと、自分の名前で確保されます。')+`<div class="ww-tabs">${[['all','すべて'],['ready','着手可'],['mine','自分が確保'],['claimed','確保済み'],['waiting','資料待ち'],['done','完了']].map(([v,s])=>`<button class="ww-tab ${filter===v?'active':''}" data-action="claim-filter" data-value="${v}">${s}</button>`).join('')}</div><section class="ww-panel ic-pool">${cards(list)}</section>`}
 S.pages.tasks=taskPool;S.pages.assign=taskPool;
-function home(){init();const all=S.smallTeam.tasksFor(),ready=all.filter(t=>stateFor(t)==='ready'),mine=all.filter(t=>actor()===t.assignee&&t.status!=='done');return head(st.role==='admin'?'資料とタスクの状況':'タスクを選んで作業する','資料の内容確認が完了し、着手条件が揃うとタスクがグレーからカラーに変わります。',go('タスク一覧','tasks','','primary')+(st.role==='admin'?go('見込み客・営業','sales'):''))+`<div class="ic-flow">資料提出 → 格納 → 内容確認・不備は再提出 → タスク点灯 → パートが確保 → 作業完了</div><div class="sm-stats">${[['着手可',ready.length],['確保済み',all.filter(t=>t.assignee&&t.status!=='done').length],['資料・前工程待ち',all.filter(t=>stateFor(t)==='waiting').length],['完了',all.filter(t=>t.status==='done').length]].map(([label,n])=>`<div class="ww-panel sm-stat"><strong>${n}<small>件</small></strong><span>${label}</span></div>`).join('')}</div>${st.role==='worker'&&mine.length?`<section class="ww-panel"><h2>自分が確保しているタスク</h2>${cards(mine)}</section>`:''}<section class="ww-panel sm-section"><div class="ww-list-head"><h2>タスク一覧</h2>${go('すべて表示','tasks')}</div>${cards(all.slice(0,8))}</section><div class="ww-actions sm-section">${go('資料の内容を確認','customers')}${go('受注サービス','cases')}${st.role==='admin'?go('請求・入金','billing')+go('休暇・退職時の引継ぎ','staff'):''}</div>`}
+function home(){init();const all=byDue(S.smallTeam.tasksFor()),ready=all.filter(t=>stateFor(t)==='ready'),mine=all.filter(t=>actor()===t.assignee&&t.status!=='done');return head(st.role==='admin'?'資料とタスクの状況':'タスクを選んで作業する','資料の内容確認が完了し、着手条件が揃うとタスクがグレーからカラーに変わります。',go('タスク一覧','tasks','','primary')+(st.role==='admin'?go('見込み客・営業','sales'):''))+`<div class="ic-flow">資料提出 → 格納 → 内容確認・不備は再提出 → タスク点灯 → パートが確保 → 作業完了</div><div class="sm-stats">${[['着手可',ready.length],['確保済み',all.filter(t=>t.assignee&&t.status!=='done').length],['資料・前工程待ち',all.filter(t=>stateFor(t)==='waiting').length],['完了',all.filter(t=>t.status==='done').length]].map(([label,n])=>`<div class="ww-panel sm-stat"><strong>${n}<small>件</small></strong><span>${label}</span></div>`).join('')}</div>${st.role==='worker'&&mine.length?`<section class="ww-panel"><h2>自分が確保しているタスク</h2>${cards(mine)}</section>`:''}<section class="ww-panel sm-section"><div class="ww-list-head"><h2>納期が近いタスク</h2>${go('すべて表示','tasks')}</div>${cards(all.slice(0,8))}</section><div class="ww-actions sm-section">${go('資料の内容を確認','customers')}${go('受注サービス','cases')}${st.role==='admin'?go('請求・入金','billing')+go('休暇・退職時の引継ぎ','staff'):''}</div>`}
 S.pages['admin-home']=home;S.pages['worker-home']=home;
-S.intakeTaskDetail=id=>{init();const t=task(id);if(!t)return head('タスクの記録', '現在のタスク一覧から選択してください。',go('タスク一覧','tasks'));const mine=actor()===t.assignee,r=S.intakeReadiness(t),s=S.intakeTaskState(t);return head(t.title,company(t.companyId)?.name||'',go('タスク一覧','tasks')+go('届いた資料','customer-detail',t.companyId))+`<section class="ww-panel">${cards([t],false)}${t.assignee&&t.status!=='done'&&mine?`<form data-submit="claim-notes" class="lc-form"><input type="hidden" name="id" value="${e(t.id)}"><input type="hidden" name="token" value="${e(t.claimToken)}"><label class="ww-label">実施結果・メモ<textarea class="ww-field" name="notes" rows="4">${e(t.notes||'')}</textarea></label><div data-claim-error class="wf-errors" role="alert"></div><div class="ww-actions sm-section"><button type="submit" class="ww-button">メモ保存</button><button type="button" class="ww-button primary" data-action="complete-claimed-task" data-id="${e(t.id)}" data-token="${e(t.claimToken)}" ${r.ready&&S.staffAvailable(person(t.assignee))?'':'disabled'}>完了にする</button></div></form><button class="ww-button sm-section" data-action="release-claimed-task" data-id="${e(t.id)}" data-token="${e(t.claimToken)}">確保を解除して一覧に戻す</button>`:`<p class="lc-info sm-section">${t.status==='done'?'完了済みのため選択できません。':t.assignee?'確保した本人のみ実施結果を保存・完了できます。':'カラーのタスクを選んでから作業します。'}</p><p class="lc-info">${e(t.notes||'')}</p>`}<details class="sm-section"><summary>操作履歴</summary>${(t.history||[]).map(h=>`<p class="lc-info">${e(h.at)} ${e(h.text)}</p>`).join('')}</details></section>`};
+S.intakeTaskDetail=id=>{init();const t=task(id);if(!t)return head('タスクの記録', '現在のタスク一覧から選択してください。',go('タスク一覧','tasks'));const mine=actor()===t.assignee,r=S.intakeReadiness(t),s=S.intakeTaskState(t);return head(t.title,company(t.companyId)?.name||'',go('タスク一覧','tasks')+go('届いた資料','customer-detail',t.companyId))+`<section class="ww-panel">${cards([t],false)}${dueForm(t)}${t.assignee&&t.status!=='done'&&mine?`<form data-submit="claim-notes" class="lc-form"><input type="hidden" name="id" value="${e(t.id)}"><input type="hidden" name="token" value="${e(t.claimToken)}"><label class="ww-label">実施結果・メモ<textarea class="ww-field" name="notes" rows="4">${e(t.notes||'')}</textarea></label><div data-claim-error class="wf-errors" role="alert"></div><div class="ww-actions sm-section"><button type="submit" class="ww-button">メモ保存</button><button type="button" class="ww-button primary" data-action="complete-claimed-task" data-id="${e(t.id)}" data-token="${e(t.claimToken)}" ${r.ready&&S.staffAvailable(person(t.assignee))?'':'disabled'}>完了にする</button></div></form><button class="ww-button sm-section" data-action="release-claimed-task" data-id="${e(t.id)}" data-token="${e(t.claimToken)}">確保を解除して一覧に戻す</button>`:`<p class="lc-info sm-section">${t.status==='done'?'完了済みのため選択できません。':t.assignee?'確保した本人のみ実施結果を保存・完了できます。':'カラーのタスクを選んでから作業します。'}</p><p class="lc-info">${e(t.notes||'')}</p>`}<details class="sm-section"><summary>操作履歴</summary>${(t.history||[]).map(h=>`<p class="lc-info">${e(h.at)} ${e(h.text)}</p>`).join('')}</details></section>`};
 H['claim-filter']=el=>{filter=el.dataset.value;S.render()};
 H['claim-task']=async el=>{const who=actor();if(!who)return S.toast('上部で在席中のパートを選んでください');await exclusive(()=>{init();const t=task(el.dataset.id);if(!t||t.status==='done')return S.toast('このタスクは完了済みです');if(!signed(t.companyId)||!S.intakeReadiness(t).ready)return S.toast('まだ着手条件が揃っていません');if(t.assignee)return S.toast((person(t.assignee)?.name||'別の担当者')+'さんがすでに確保しています');if(!S.staffAvailable(person(who)))return S.toast('在席状況を確認してください');t.assignee=who;t.status='doing';t.claimToken=uid('claim');t.claimedAt=now();bump(t);history(t,person(who).name+' が自分で選択・確保');log(company(t.companyId).name+' '+t.title+' を'+person(who).name+'が確保');S.save();S.render();S.toast('自分の名前でタスクを確保しました')})};
 function owned(id,token,who){const t=task(id);return t&&t.status!=='done'&&t.assignee===who&&t.claimToken===token&&S.staffAvailable(person(who))?t:null}
